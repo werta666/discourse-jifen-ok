@@ -1,0 +1,29 @@
+# frozen_string_literal: true
+
+# 仅在 Engine 内定义后端接口，主挂载在 plugin.rb 的 after_initialize 中完成
+MyPluginModule::Engine.routes.draw do
+  # Ember 引导页（/qd）
+  get "/" => "qd#index"
+  # 积分榜引导页（/qd/board）
+  get "/board" => "qd#index"
+
+  # 签到/积分数据接口（仅中文 JSON）
+  get "/summary" => "qd#summary"         # 返回页面所需概览：是否登录、今日/总积分、连续天数、基础分、今日是否已签、安装日期、补签卡信息等
+  get "/records" => "qd#records"         # 返回签到记录（时间、是否补签、获得积分），按时间倒序
+  post "/signin" => "qd#signin"          # 今日签到
+  post "/makeup" => "qd#makeup"          # 补签（占位，后续可实现）
+  post "/buy_makeup_card" => "qd#buy_makeup_card"  # 购买补签卡（占位，后续可实现）
+
+  # API v1（供内部/自动化集成使用）
+  scope "/api" do
+    scope "/v1" do
+      get "/balance" => "api#balance"             # /qd/api/v1/balance.json
+      post "/adjust_points" => "api#adjust_points" # /qd/api/v1/adjust_points.json
+    end
+  end
+
+  # 管理端调试/同步（qd.hbs 中的“管理员调试”）
+  post "/admin/sync" => "admin#sync"
+  post "/admin/adjust_points" => "admin#adjust_points"
+  post "/admin/reset_today" => "admin#reset_today"
+end
