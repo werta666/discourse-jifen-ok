@@ -45,8 +45,14 @@ after_initialize do
   DiscourseEvent.on(:site_setting_changed) do |name, old_value, new_value|
     if name == :jifen_leaderboard_update_minutes && old_value != new_value
       Rails.logger.info "[积分插件] 排行榜更新间隔从 #{old_value} 分钟调整为 #{new_value} 分钟"
-      # 注意：Discourse的定时任务间隔在运行时无法动态修改
-      # 新的间隔将在下次服务器重启后生效
+      
+      # 立即刷新缓存以应用新的时间间隔
+      begin
+        MyPluginModule::JifenService.refresh_leaderboard_cache!
+        Rails.logger.info "[积分插件] 已立即刷新排行榜缓存以应用新的更新间隔"
+      rescue => e
+        Rails.logger.error "[积分插件] 刷新排行榜缓存失败: #{e.message}"
+      end
     end
   end
 end

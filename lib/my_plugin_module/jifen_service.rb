@@ -299,10 +299,28 @@ module ::MyPluginModule
     # 强制刷新排行榜缓存（管理员功能）
     def self.force_refresh_leaderboard!
       cache_key = "jifen_leaderboard_cache"
+      last_update_key = "jifen_leaderboard_last_update"
       fresh_data = calculate_leaderboard_uncached(limit: 10)
+      current_time = Time.current
+      
       Rails.cache.write(cache_key, fresh_data, expires_in: 2.hours)
+      Rails.cache.write(last_update_key, current_time, expires_in: 2.hours)
       
       Rails.logger.info "[积分插件] 管理员强制刷新排行榜缓存"
+      fresh_data
+    end
+
+    # 刷新排行榜缓存（后台任务和设置变更使用）
+    def self.refresh_leaderboard_cache!
+      cache_key = "jifen_leaderboard_cache"
+      last_update_key = "jifen_leaderboard_last_update"
+      fresh_data = calculate_leaderboard_uncached(limit: 10)
+      current_time = Time.current
+      
+      Rails.cache.write(cache_key, fresh_data, expires_in: 2.hours)
+      Rails.cache.write(last_update_key, current_time, expires_in: 2.hours)
+      
+      Rails.logger.info "[积分插件] 排行榜缓存已刷新"
       fresh_data
     end
 

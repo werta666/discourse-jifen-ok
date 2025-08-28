@@ -97,10 +97,7 @@ export default class QdBoardController extends Controller {
       
       this.nextUpdateMinutes = Math.max(0, minutesLeft);
       
-      // 如果倒计时到0，触发数据刷新
-      if (this.nextUpdateMinutes === 0) {
-        this.loadLeaderboard();
-      }
+      // 移除自动刷新功能，只显示倒计时
     } catch (error) {
       console.error("计算倒计时失败:", error);
       this.nextUpdateMinutes = this.updateIntervalMinutes;
@@ -149,25 +146,22 @@ export default class QdBoardController extends Controller {
         this.model.top = result.leaderboard || [];
         this.model.updatedAt = result.updated_at;
         
+        // 强制触发页面重新渲染
+        this.notifyPropertyChange('model');
+        this.notifyPropertyChange('sortedTop');
+        this.notifyPropertyChange('firstUser');
+        this.notifyPropertyChange('secondUser');
+        this.notifyPropertyChange('thirdUser');
+        this.notifyPropertyChange('restList');
+        
         // 重启倒计时（基于新的更新时间）
         this.startCountdown();
         
         // 显示成功提示
-        if (this.appEvents) {
-          this.appEvents.trigger("modal-body:flash", {
-            text: result.message || "排行榜已刷新",
-            messageClass: "success"
-          });
-        }
+        console.log("排行榜已强制刷新，新数据:", result.leaderboard);
       }
     } catch (error) {
       console.error("强制刷新排行榜失败:", error);
-      if (this.appEvents) {
-        this.appEvents.trigger("modal-body:flash", {
-          text: "刷新失败，请稍后重试",
-          messageClass: "error"
-        });
-      }
     } finally {
       this.isLoading = false;
     }
