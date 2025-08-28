@@ -26,7 +26,7 @@ jifen:
     description: "补签卡单价（积分）。购买后会从可用积分中扣除相应积分，并增加 1 张补签卡"
 
   jifen_leaderboard_update_minutes:
-    default: 5
+    default: 3
     min: 1
     max: 60
     client: false

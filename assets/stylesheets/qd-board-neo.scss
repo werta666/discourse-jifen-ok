@@ -410,6 +410,78 @@
   text-shadow: 0 1px 1px rgba(0,0,0,0.2);
 }
 
+/* 底部信息区域重新设计 */
+.board-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 30px;
+  padding: 20px;
+  background: linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(5px);
+}
+
+.board-info {
+  flex: 1;
+}
+
+.countdown-info {
+  font-size: 16px;
+  color: rgba(255,255,255,0.9);
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.countdown-minutes {
+  display: inline-block;
+  background: linear-gradient(45deg, #ff6b6b, #feca57);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 8px rgba(255,107,107,0.3);
+  animation: pulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+.admin-refresh-btn {
+  background: linear-gradient(45deg, #667eea, #764ba2) !important;
+  border: none !important;
+  color: white !important;
+  padding: 12px 24px !important;
+  border-radius: 25px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+  box-shadow: 
+    0 4px 15px rgba(102,126,234,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.2) !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+}
+
+.admin-refresh-btn:hover:not(:disabled) {
+  background: linear-gradient(45deg, #5a67d8, #6b46c1) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    0 6px 20px rgba(102,126,234,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.2) !important;
+}
+
+.admin-refresh-btn:disabled {
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .qd-board--neo .qd-card {
@@ -439,5 +511,19 @@
     width: 72px;
     height: 72px;
     font-size: 22px;
+  }
+
+  .board-footer {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .countdown-info {
+    font-size: 14px;
+  }
+
+  .admin-refresh-btn {
+    width: 100%;
   }
 }

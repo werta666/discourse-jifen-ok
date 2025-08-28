@@ -70,6 +70,12 @@
 
       {{! 底部操作区 }}
       <div class="board-footer">
+        <div class="board-info">
+          <div class="countdown-info">
+            ⏰ 距离下次更新还需要 <span class="countdown-minutes">{{this.nextUpdateMinutes}}</span> 分钟
+          </div>
+        </div>
+        
         {{#if this.isAdmin}}
           <button 
             type="button" 
@@ -78,14 +84,9 @@
             disabled={{this.isLoading}}
             title="管理员专用：强制刷新排行榜缓存"
           >
-            {{#if this.isLoading}}强制刷新中...{{else}}🔄 强制刷新{{/if}}
+            {{#if this.isLoading}}🔄 刷新中...{{else}}🔄 强制刷新{{/if}}
           </button>
-        {{else}}
-          <div class="cache-info">
-            📊 数据每{{site.jifen_leaderboard_update_minutes}}分钟自动更新
-          </div>
         {{/if}}
-        <span class="board-updated">更新于: {{this.model.updatedAt}}</span>
       </div>
     </div>
   </div>

@@ -4,7 +4,7 @@ module ::MyPluginModule
   class QdController < ::ApplicationController
     requires_plugin MyPluginModule::PLUGIN_NAME
 
-    before_action :ensure_logged_in, except: [:index]
+    before_action :ensure_logged_in, except: [:index, :board]
 
     # Ember 引导页
     def index

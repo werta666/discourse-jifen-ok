@@ -2,7 +2,7 @@
 
 module ::MyPluginModule
   class UpdateLeaderboardJob < ::Jobs::Scheduled
-    every 5.minutes  # 默认5分钟，避免启动时读取设置失败
+    every 3.minutes  # 默认3分钟，避免启动时读取设置失败
 
     def execute(args)
       return unless SiteSetting.jifen_enabled

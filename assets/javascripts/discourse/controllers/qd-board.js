@@ -5,6 +5,8 @@ import { ajax } from "discourse/lib/ajax";
 
 export default class QdBoardController extends Controller {
   @tracked isLoading = false;
+  @tracked nextUpdateMinutes = 3;
+  @tracked countdownTimer = null;
 
   // 检查是否需要登录
   get requiresLogin() {
@@ -48,6 +50,33 @@ export default class QdBoardController extends Controller {
     return "board-medal board-medal--none";
   }
 
+  // 启动倒计时
+  startCountdown() {
+    // 清除之前的定时器
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+    }
+
+    // 设置初始倒计时为3分钟
+    this.nextUpdateMinutes = 3;
+
+    // 每分钟更新一次倒计时
+    this.countdownTimer = setInterval(() => {
+      this.nextUpdateMinutes--;
+      if (this.nextUpdateMinutes <= 0) {
+        this.nextUpdateMinutes = 3; // 重置为3分钟
+      }
+    }, 60000); // 60秒
+  }
+
+  // 清理定时器
+  willDestroy() {
+    super.willDestroy();
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+    }
+  }
+
   @action
   async refreshBoard() {
     if (!this.isAdmin) {
@@ -64,6 +93,9 @@ export default class QdBoardController extends Controller {
         // 更新模型数据
         this.model.top = result.leaderboard || [];
         this.model.updatedAt = result.updated_at;
+        
+        // 重启倒计时
+        this.startCountdown();
         
         // 显示成功提示
         if (this.appEvents) {
