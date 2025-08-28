@@ -1,7 +1,7 @@
 /* 积分排行榜 - 马里奥游戏风格样式 */
 
 /* 整体容器：马里奥世界背景 */
-.qd-board--neo {
+.qd-board--mario {
   background: linear-gradient(180deg, #87CEEB 0%, #98D8E8 30%, #90EE90 70%, #228B22 100%);
   min-height: 100vh;
   padding: 20px 0;
@@ -10,7 +10,7 @@
 }
 
 /* 云朵装饰 */
-.qd-board--neo::before {
+.qd-board--mario::before {
   content: '';
   position: absolute;
   top: 10%;
@@ -29,7 +29,7 @@
 }
 
 /* 更多云朵 */
-.qd-board--neo::after {
+.qd-board--mario::after {
   content: '';
   position: absolute;
   top: 20%;
@@ -51,7 +51,7 @@
   100% { transform: translateX(calc(100vw + 100px)); }
 }
 
-.qd-board--neo .qd-container {
+.qd-board--mario .qd-container {
   max-width: 960px;
   margin: 0 auto;
   padding: 0 20px;
@@ -59,7 +59,7 @@
   z-index: 10;
 }
 
-.qd-board--neo .qd-card {
+.qd-board--mario .qd-card {
   background: linear-gradient(145deg, #FFE4B5 0%, #FFDAB9 50%, #F4A460 100%);
   border: 4px solid #8B4513;
   border-radius: 20px;
@@ -71,7 +71,7 @@
 }
 
 /* 砖块纹理效果 */
-.qd-board--neo .qd-card::before {
+.qd-board--mario .qd-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -182,7 +182,7 @@
 }
 
 /* 马里奥风格按钮 */
-.qd-board--neo .login-button {
+.qd-board--mario .login-button {
   display: inline-block;
   background: linear-gradient(145deg, #FF0000 0%, #CC0000 100%);
   color: white;
@@ -202,7 +202,7 @@
   z-index: 2;
 }
 
-.qd-board--neo .login-button:hover {
+.qd-board--mario .login-button:hover {
   transform: translateY(-2px);
   box-shadow: 
     0 6px 0 #660000,
@@ -211,7 +211,7 @@
   color: white;
 }
 
-.qd-board--neo .login-button:active {
+.qd-board--mario .login-button:active {
   transform: translateY(2px);
   box-shadow: 
     0 2px 0 #660000,
@@ -503,7 +503,7 @@
 }
 
 /* 管理员按钮 - 超级蘑菇风格 */
-.qd-board--neo .admin-refresh-btn {
+.qd-board--mario .admin-refresh-btn {
   background: linear-gradient(145deg, #FF0000 0%, #CC0000 100%) !important;
   border: 3px solid #8B0000 !important;
   color: white !important;
@@ -520,7 +520,7 @@
   font-family: 'Comic Sans MS', cursive, sans-serif !important;
 }
 
-.qd-board--neo .admin-refresh-btn:hover:not(:disabled) {
+.qd-board--mario .admin-refresh-btn:hover:not(:disabled) {
   background: linear-gradient(145deg, #FF3333 0%, #FF0000 100%) !important;
   transform: translateY(-2px) !important;
   box-shadow: 
@@ -528,14 +528,14 @@
     0 8px 15px rgba(0,0,0,0.4) !important;
 }
 
-.qd-board--neo .admin-refresh-btn:active {
+.qd-board--mario .admin-refresh-btn:active {
   transform: translateY(2px) !important;
   box-shadow: 
     0 2px 0 #660000,
     0 4px 8px rgba(0,0,0,0.3) !important;
 }
 
-.qd-board--neo .admin-refresh-btn:disabled {
+.qd-board--mario .admin-refresh-btn:disabled {
   opacity: 0.6 !important;
   cursor: not-allowed !important;
   transform: none !important;
@@ -543,7 +543,7 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .qd-board--neo .qd-card {
+  .qd-board--mario .qd-card {
     padding: 20px;
     margin: 0 10px;
   }
@@ -593,6 +593,6 @@
   50% { transform: translateY(-10px); }
 }
 
-.qd-board--neo .loading {
+.qd-board--mario .loading {
   animation: marioJump 0.8s ease-in-out infinite;
 }

@@ -8,6 +8,11 @@ export default class QdBoardController extends Controller {
   @service siteSettings;
   
   @tracked isLoading = false;
+
+  // 获取当前主题设置
+  get boardTheme() {
+    return this.siteSettings?.jifen_board_theme || 'neo';
+  }
   @tracked nextUpdateMinutes = 3;
   @tracked countdownTimer = null;
 
