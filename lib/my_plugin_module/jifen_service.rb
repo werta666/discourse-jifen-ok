@@ -268,5 +268,33 @@ module ::MyPluginModule
 
       summary_for(user)
     end
+
+    # 获取积分排行榜
+    def self.get_leaderboard(limit: 5)
+      # 获取所有有积分记录的用户，按总积分排序
+      users_with_points = User.joins("LEFT JOIN user_custom_fields ucf_total ON users.id = ucf_total.user_id AND ucf_total.name = 'jifen_spent'")
+        .joins("INNER JOIN jifen_signins js ON users.id = js.user_id")
+        .select("users.id, users.username, 
+                 COALESCE(SUM(js.points), 0) as total_points,
+                 COALESCE(ucf_total.value::integer, 0) as spent_points,
+                 COALESCE(SUM(js.points), 0) - COALESCE(ucf_total.value::integer, 0) as available_points")
+        .group("users.id, users.username, ucf_total.value")
+        .having("COALESCE(SUM(js.points), 0) > 0")
+        .order("available_points DESC")
+        .limit(limit)
+
+      leaderboard = users_with_points.map.with_index(1) do |user, rank|
+        {
+          rank: rank,
+          username: user.username,
+          points: user.available_points.to_i
+        }
+      end
+
+      {
+        leaderboard: leaderboard,
+        updated_at: Time.zone.now.iso8601
+      }
+    end
   end
 end

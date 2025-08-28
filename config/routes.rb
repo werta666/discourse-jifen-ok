@@ -10,6 +10,7 @@ MyPluginModule::Engine.routes.draw do
   # 签到/积分数据接口（仅中文 JSON）
   get "/summary" => "qd#summary"         # 返回页面所需概览：是否登录、今日/总积分、连续天数、基础分、今日是否已签、安装日期、补签卡信息等
   get "/records" => "qd#records"         # 返回签到记录（时间、是否补签、获得积分），按时间倒序
+  get "/board" => "qd#board"             # 返回积分排行榜前五名用户数据
   post "/signin" => "qd#signin"          # 今日签到
   post "/makeup" => "qd#makeup"          # 补签（占位，后续可实现）
   post "/buy_makeup_card" => "qd#buy_makeup_card"  # 购买补签卡（占位，后续可实现）

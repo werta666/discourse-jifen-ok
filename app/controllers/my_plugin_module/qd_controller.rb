@@ -60,5 +60,16 @@ module ::MyPluginModule
     rescue StandardError => e
       render_json_error(e.message)
     end
+
+    # 积分排行榜（前五名）
+    def board
+      begin
+        board_data = MyPluginModule::JifenService.get_leaderboard(limit: 5)
+        render_json_dump(board_data)
+      rescue => e
+        Rails.logger.error "获取排行榜失败: #{e.message}"
+        render_json_error("获取排行榜失败", status: 500)
+      end
+    end
   end
 end
