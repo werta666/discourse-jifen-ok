@@ -2,7 +2,7 @@
 
 module ::MyPluginModule
   class UpdateLeaderboardJob < ::Jobs::Scheduled
-    every SiteSetting.jifen_leaderboard_update_minutes.minutes
+    every 5.minutes  # 默认5分钟，避免启动时读取设置失败
 
     def execute(args)
       return unless SiteSetting.jifen_enabled
@@ -23,11 +23,10 @@ module ::MyPluginModule
       end
     end
 
-    # 动态更新任务执行间隔
-    def self.update_schedule!
-      interval = SiteSetting.jifen_leaderboard_update_minutes.minutes
-      self.every interval
-      Rails.logger.info "[积分插件] 排行榜更新间隔已调整为 #{SiteSetting.jifen_leaderboard_update_minutes} 分钟"
+    # 获取更新间隔（从站点设置读取，默认5分钟）
+    def self.update_interval
+      return 5.minutes unless defined?(SiteSetting)
+      SiteSetting.jifen_leaderboard_update_minutes&.minutes || 5.minutes
     end
   end
 end

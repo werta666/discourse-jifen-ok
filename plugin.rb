@@ -29,18 +29,15 @@ after_initialize do
     mount ::MyPluginModule::Engine, at: "/qd"
   end
 
-  # 注册后台任务
-  require_relative "app/jobs/my_plugin_module/update_leaderboard_job"
-  
-  # 监听站点设置变化，动态调整任务间隔
-  DiscourseEvent.on(:site_setting_changed) do |name, old_value, new_value|
-    if name == :jifen_leaderboard_update_minutes && old_value != new_value
-      MyPluginModule::UpdateLeaderboardJob.update_schedule!
+  # 延迟加载后台任务，避免启动时的常量问题
+  Rails.application.config.to_prepare do
+    if SiteSetting.jifen_enabled
+      # 初始化排行榜缓存
+      begin
+        MyPluginModule::JifenService.get_leaderboard(limit: 5)
+      rescue => e
+        Rails.logger.warn "[积分插件] 初始化排行榜缓存失败: #{e.message}"
+      end
     end
-  end
-  
-  # 插件启用时初始化排行榜缓存
-  if SiteSetting.jifen_enabled
-    Jobs.enqueue(:update_leaderboard, {})
   end
 end
