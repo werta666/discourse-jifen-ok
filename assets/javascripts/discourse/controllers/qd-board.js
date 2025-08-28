@@ -5,6 +5,15 @@ import { action } from "@ember/object";
 export default class QdBoardController extends Controller {
   @tracked isLoading = false;
 
+  // 检查是否需要登录
+  get requiresLogin() {
+    return this.model?.requires_login || false;
+  }
+
+  get loginMessage() {
+    return this.model?.message || "请登录后查看积分排行榜";
+  }
+
   // 排序后的前五
   get sortedTop() {
     return (this.model?.top || []).slice().sort((a, b) => a.rank - b.rank).slice(0, 5);

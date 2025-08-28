@@ -63,9 +63,20 @@ module ::MyPluginModule
 
     # 积分排行榜（前五名）
     def board
+      # 未登录用户返回需要登录的提示
+      unless current_user
+        render_json_dump({
+          requires_login: true,
+          message: "请登录后查看积分排行榜",
+          leaderboard: [],
+          updated_at: Time.zone.now.iso8601
+        })
+        return
+      end
+
       begin
         board_data = MyPluginModule::JifenService.get_leaderboard(limit: 5)
-        render_json_dump(board_data)
+        render_json_dump(board_data.merge(requires_login: false))
       rescue => e
         Rails.logger.error "获取排行榜失败: #{e.message}"
         render_json_error("获取排行榜失败", status: 500)

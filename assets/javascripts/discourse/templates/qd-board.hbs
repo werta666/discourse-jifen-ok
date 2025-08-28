@@ -1,67 +1,84 @@
-<div class="qd-page">
+{{! 积分排行榜模板 - 游戏风格舞台布局 }}
+<div class="qd-page qd-board--neo">
   <div class="qd-container">
-    <div class="qd-card qd-board qd-board--neo">
+    <div class="qd-card">
       <div class="board-header">
-        <h1 class="qd-title">🏆 积分排行榜</h1>
-        <p class="qd-subtitle">前五名荣耀展示</p>
+        <h2 class="board-title">🏆 积分排行榜</h2>
+        <p class="board-subtitle">前五名荣耀展示</p>
       </div>
 
-      <div class="board-stage">
-        {{#if this.secondUser}}
-          <div class="podium podium--second">
-            <div class={{this.medalClass this.secondUser.rank}}>
-              {{this.secondUser.rank}}
-            </div>
-            <div class="podium-meta">
-              <div class="board-name">@{{this.secondUser.username}}</div>
-              <div class="board-points">+{{this.secondUser.points}} 分</div>
-            </div>
-            <div class="podium-foot podium-foot--second"></div>
+      {{#if this.requiresLogin}}
+        {{! 未登录状态的友好提示 }}
+        <div class="board-login-prompt">
+          <div class="login-icon">🔐</div>
+          <h3 class="login-title">需要登录</h3>
+          <p class="login-message">{{this.loginMessage}}</p>
+          <LinkTo @route="login" class="login-button">
+            立即登录
+          </LinkTo>
+        </div>
+      {{else}}
+        {{! 已登录状态显示排行榜 }}
+        <div class="board-stage">
+          {{! 舞台/领奖台布局：亚军(左) - 冠军(中心放大) - 季军(右) }}
+          <div class="podium">
+            {{#if this.secondUser}}
+              <div class="podium-position podium-position--second">
+                <div class="{{this.medalClass this.secondUser.rank}}">
+                  <span class="medal-rank">{{this.secondUser.rank}}</span>
+                </div>
+                <div class="podium-user">{{this.secondUser.username}}</div>
+                <div class="podium-score">+{{this.secondUser.points}} 分</div>
+              </div>
+            {{/if}}
+
+            {{#if this.firstUser}}
+              <div class="podium-position podium-position--first">
+                <div class="{{this.medalClass this.firstUser.rank}}">
+                  <span class="medal-rank">{{this.firstUser.rank}}</span>
+                </div>
+                <div class="podium-user">{{this.firstUser.username}}</div>
+                <div class="podium-score">+{{this.firstUser.points}} 分</div>
+              </div>
+            {{/if}}
+
+            {{#if this.thirdUser}}
+              <div class="podium-position podium-position--third">
+                <div class="{{this.medalClass this.thirdUser.rank}}">
+                  <span class="medal-rank">{{this.thirdUser.rank}}</span>
+                </div>
+                <div class="podium-user">{{this.thirdUser.username}}</div>
+                <div class="podium-score">+{{this.thirdUser.points}} 分</div>
+              </div>
+            {{/if}}
+          </div>
+        </div>
+
+        {{! 其余榜单（第4-5名）}}
+        {{#if this.restList}}
+          <div class="board-list">
+            {{#each this.restList as |user|}}
+              <div class="board-item">
+                <div class="board-rank">#{{user.rank}}</div>
+                <div class="board-user">{{user.username}}</div>
+                <div class="board-score">+{{user.points}} 分</div>
+              </div>
+            {{/each}}
           </div>
         {{/if}}
+      {{/if}}
 
-        {{#if this.firstUser}}
-          <div class="podium podium--first">
-            <div class={{this.medalClass this.firstUser.rank}}>
-              {{this.firstUser.rank}}
-            </div>
-            <div class="podium-meta">
-              <div class="board-name">@{{this.firstUser.username}}</div>
-              <div class="board-points">+{{this.firstUser.points}} 分</div>
-            </div>
-            <div class="podium-foot podium-foot--first"></div>
-          </div>
-        {{/if}}
-
-        {{#if this.thirdUser}}
-          <div class="podium podium--third">
-            <div class={{this.medalClass this.thirdUser.rank}}>
-              {{this.thirdUser.rank}}
-            </div>
-            <div class="podium-meta">
-              <div class="board-name">@{{this.thirdUser.username}}</div>
-              <div class="board-points">+{{this.thirdUser.points}} 分</div>
-            </div>
-            <div class="podium-foot podium-foot--third"></div>
-          </div>
-        {{/if}}
-      </div>
-
-      <div class="board-list">
-        {{#each this.restList as |u|}}
-          <div class="board-item">
-            <div class="board-rank">#{{u.rank}}</div>
-            <div class="board-user">@{{u.username}}</div>
-            <div class="board-score">+{{u.points}} 分</div>
-          </div>
-        {{/each}}
-      </div>
-
+      {{! 底部操作区 }}
       <div class="board-footer">
-        <button class="btn btn-default" {{on "click" this.refreshBoard}} disabled={{this.isLoading}}>
-          {{if this.isLoading "刷新中..." "刷新"}}
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          {{on "click" this.refreshBoard}}
+          disabled={{this.isLoading}}
+        >
+          {{#if this.isLoading}}刷新中...{{else}}刷新{{/if}}
         </button>
-        <div class="board-updated">更新于：{{this.model.updatedAt}}</div>
+        <span class="board-updated">更新于: {{this.model.updatedAt}}</span>
       </div>
     </div>
   </div>
