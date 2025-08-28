@@ -75,11 +75,25 @@ module ::MyPluginModule
       end
 
       begin
-        board_data = MyPluginModule::JifenService.get_leaderboard(limit: 5)
-        render_json_dump(board_data.merge(
+        # 获取分页参数
+        page = (params[:page] || 1).to_i
+        page = 1 if page < 1
+        
+        board_data = MyPluginModule::JifenService.get_leaderboard(page: page)
+        
+        # 格式化数据以匹配前端期望
+        response_data = {
           requires_login: false,
-          is_admin: current_user.admin?
-        ))
+          is_admin: current_user.admin?,
+          top: board_data[:leaderboard] || [],
+          updatedAt: board_data[:updated_at],
+          minutes_until_next_update: board_data[:minutes_until_next_update] || 0,
+          update_interval_minutes: board_data[:update_interval_minutes] || 5,
+          pagination: board_data[:pagination] || {},
+          from_cache: board_data[:from_cache] || false
+        }
+        
+        render_json_dump(response_data)
       rescue => e
         Rails.logger.error "获取排行榜失败: #{e.message}"
         render_json_error("获取排行榜失败", status: 500)

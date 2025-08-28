@@ -5,6 +5,7 @@ import { ajax } from "discourse/lib/ajax";
 
 export default class QdBoardController extends Controller {
   @tracked isLoading = false;
+  @tracked currentPage = 1;
 
   // 检查是否需要登录
   get requiresLogin() {
@@ -20,25 +21,83 @@ export default class QdBoardController extends Controller {
     return this.model?.is_admin || false;
   }
 
-  // 排序后的前五
-  get sortedTop() {
-    return (this.model?.top || []).slice().sort((a, b) => a.rank - b.rank).slice(0, 5);
+  // 获取距离下次更新的分钟数
+  get minutesUntilNextUpdate() {
+    return this.model?.minutes_until_next_update || 0;
   }
 
-  // 前三名选择器，便于模板定点布局
+  // 获取更新间隔分钟数
+  get updateIntervalMinutes() {
+    return this.model?.update_interval_minutes || 5;
+  }
+
+  // 分页信息
+  get pagination() {
+    return this.model?.pagination || {};
+  }
+
+  get totalPages() {
+    return this.pagination.total_pages || 1;
+  }
+
+  get totalCount() {
+    return this.pagination.total_count || 0;
+  }
+
+  get displayCount() {
+    return this.pagination.display_count || 30;
+  }
+
+  get pageSize() {
+    return this.pagination.page_size || 10;
+  }
+
+  get hasPrevPage() {
+    return this.currentPage > 1;
+  }
+
+  get hasNextPage() {
+    return this.currentPage < this.totalPages;
+  }
+
+  get pageNumbers() {
+    const pages = [];
+    const start = Math.max(1, this.currentPage - 2);
+    const end = Math.min(this.totalPages, this.currentPage + 2);
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  // 当前页的排行榜数据
+  get currentPageData() {
+    return (this.model?.top || []).slice().sort((a, b) => a.rank - b.rank);
+  }
+
+  // 前三名选择器（仅在第一页且有前三名时显示）
+  get showPodium() {
+    return this.currentPage === 1 && this.currentPageData.length >= 3;
+  }
+
   get firstUser() {
-    return this.sortedTop.find((u) => u.rank === 1) || this.sortedTop[0];
+    return this.showPodium ? this.currentPageData.find((u) => u.rank === 1) : null;
   }
   get secondUser() {
-    return this.sortedTop.find((u) => u.rank === 2) || this.sortedTop[1];
+    return this.showPodium ? this.currentPageData.find((u) => u.rank === 2) : null;
   }
   get thirdUser() {
-    return this.sortedTop.find((u) => u.rank === 3) || this.sortedTop[2];
+    return this.showPodium ? this.currentPageData.find((u) => u.rank === 3) : null;
   }
 
-  // 其余 4-5 名
-  get restList() {
-    return this.sortedTop.filter((u) => u.rank > 3);
+  // 列表显示的数据（第一页时排除前三名，其他页显示全部）
+  get listData() {
+    if (this.showPodium) {
+      return this.currentPageData.filter((u) => u.rank > 3);
+    } else {
+      return this.currentPageData;
+    }
   }
 
   medalClass(rank) {
@@ -61,9 +120,8 @@ export default class QdBoardController extends Controller {
       });
       
       if (result.success) {
-        // 更新模型数据
-        this.model.top = result.leaderboard || [];
-        this.model.updatedAt = result.updated_at;
+        // 强制刷新后重新加载当前页数据
+        await this.loadPage(this.currentPage);
         
         // 显示成功提示
         if (this.appEvents) {
@@ -83,6 +141,55 @@ export default class QdBoardController extends Controller {
       }
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  @action
+  async loadPage(page) {
+    if (page < 1 || page > this.totalPages) return;
+    
+    this.isLoading = true;
+    this.currentPage = page;
+    
+    try {
+      const result = await ajax(`/qd/board.json?page=${page}`);
+      
+      // 更新模型数据
+      this.model.top = result.top || [];
+      this.model.pagination = result.pagination || {};
+      this.model.minutes_until_next_update = result.minutes_until_next_update;
+      this.model.update_interval_minutes = result.update_interval_minutes;
+      this.model.updatedAt = result.updatedAt;
+      
+    } catch (error) {
+      console.error("加载页面数据失败:", error);
+      if (this.appEvents) {
+        this.appEvents.trigger("modal-body:flash", {
+          text: "加载数据失败，请稍后重试",
+          messageClass: "error"
+        });
+      }
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  @action
+  goToPage(page) {
+    this.loadPage(page);
+  }
+
+  @action
+  prevPage() {
+    if (this.hasPrevPage) {
+      this.loadPage(this.currentPage - 1);
+    }
+  }
+
+  @action
+  nextPage() {
+    if (this.hasNextPage) {
+      this.loadPage(this.currentPage + 1);
     }
   }
 }

@@ -270,27 +270,79 @@ module ::MyPluginModule
     end
 
     # 获取积分排行榜（从缓存读取，性能优化版本）
-    def self.get_leaderboard(limit: 5)
+    def self.get_leaderboard(limit: nil, page: 1)
+      # 使用配置的显示数量，如果没有传入 limit
+      display_count = limit || SiteSetting.jifen_leaderboard_display_count || 30
+      page_size = SiteSetting.jifen_leaderboard_page_size || 10
+      
       cache_key = "jifen_leaderboard_cache"
       cached_data = Rails.cache.read(cache_key)
       
       if cached_data
+        # 计算距离下次更新的分钟数
+        last_updated = cached_data[:last_updated] || Time.current
+        update_interval = cached_data[:update_interval_minutes] || 5
+        next_update_time = last_updated + update_interval.minutes
+        minutes_until_next_update = [(next_update_time - Time.current) / 60, 0].max.round
+        
         # 从缓存中取前N名
-        limited_leaderboard = cached_data[:leaderboard].first(limit)
+        all_leaderboard = cached_data[:leaderboard] || []
+        limited_leaderboard = all_leaderboard.first(display_count)
+        
+        # 分页处理
+        total_count = limited_leaderboard.size
+        total_pages = (total_count.to_f / page_size).ceil
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size - 1
+        current_page_data = limited_leaderboard[start_index..end_index] || []
+        
         return {
-          leaderboard: limited_leaderboard,
+          leaderboard: current_page_data,
           updated_at: cached_data[:updated_at],
+          minutes_until_next_update: minutes_until_next_update,
+          update_interval_minutes: update_interval,
+          pagination: {
+            current_page: page,
+            total_pages: total_pages,
+            page_size: page_size,
+            total_count: total_count,
+            display_count: display_count
+          },
           from_cache: true
         }
       else
         # 缓存未命中，实时计算并写入缓存
         Rails.logger.warn "[积分插件] 排行榜缓存未命中，执行实时计算"
-        fresh_data = calculate_leaderboard_uncached(limit: 10)
-        Rails.cache.write(cache_key, fresh_data, expires_in: 1.hour)
+        cache_limit = [display_count, 100].max # 缓存更多数据以支持分页
+        fresh_data = calculate_leaderboard_uncached(limit: cache_limit)
+        update_interval = SiteSetting.jifen_leaderboard_update_minutes || 5
+        cache_data = fresh_data.merge({
+          last_updated: Time.current,
+          update_interval_minutes: update_interval
+        })
+        Rails.cache.write(cache_key, cache_data, expires_in: 1.hour)
+        
+        # 分页处理
+        all_leaderboard = fresh_data[:leaderboard] || []
+        limited_leaderboard = all_leaderboard.first(display_count)
+        total_count = limited_leaderboard.size
+        total_pages = (total_count.to_f / page_size).ceil
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size - 1
+        current_page_data = limited_leaderboard[start_index..end_index] || []
         
         return {
-          leaderboard: fresh_data[:leaderboard].first(limit),
+          leaderboard: current_page_data,
           updated_at: fresh_data[:updated_at],
+          minutes_until_next_update: update_interval,
+          update_interval_minutes: update_interval,
+          pagination: {
+            current_page: page,
+            total_pages: total_pages,
+            page_size: page_size,
+            total_count: total_count,
+            display_count: display_count
+          },
           from_cache: false
         }
       end

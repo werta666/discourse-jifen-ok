@@ -31,3 +31,17 @@ jifen:
     max: 60
     client: false
     description: "积分排行榜缓存更新间隔（分钟）。设置后台任务多久更新一次排行榜数据，范围 1-60 分钟"
+
+  jifen_leaderboard_display_count:
+    default: 30
+    min: 5
+    max: 100
+    client: true
+    description: "积分排行榜显示用户数量。设置排行榜页面最多显示多少名用户，范围 5-100 名"
+
+  jifen_leaderboard_page_size:
+    default: 10
+    min: 5
+    max: 50
+    client: true
+    description: "积分排行榜每页显示数量。当用户数超过此值时会分页显示，范围 5-50 名"
