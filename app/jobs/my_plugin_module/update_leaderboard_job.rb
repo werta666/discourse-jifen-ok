@@ -15,10 +15,8 @@ module ::MyPluginModule
           Rails.logger.info "[积分插件] 排行榜更新间隔已调整为 #{SiteSetting.jifen_leaderboard_update_minutes} 分钟"
         end
 
-        # 计算排行榜数据（根据配置的显示数量决定缓存数量）
-        display_count = SiteSetting.jifen_leaderboard_display_count || 30
-        cache_limit = [display_count, 100].max # 至少缓存100名，支持大排行榜
-        leaderboard_data = MyPluginModule::JifenService.calculate_leaderboard_uncached(limit: cache_limit)
+        # 计算排行榜数据（前10名，比显示的5名多一些作为缓存）
+        leaderboard_data = MyPluginModule::JifenService.calculate_leaderboard_uncached(limit: 10)
         
         # 存入缓存，包含更新时间
         cache_key = "jifen_leaderboard_cache"

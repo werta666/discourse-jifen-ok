@@ -19,93 +19,51 @@
         </div>
       {{else}}
         {{! 已登录状态显示排行榜 }}
-        
-        {{! 分页信息显示 }}
-        <div class="board-pagination-info">
-          <span class="pagination-stats">
-            显示前 {{this.displayCount}} 名用户，当前第 {{this.currentPage}} / {{this.totalPages}} 页
-          </span>
+        <div class="board-stage">
+          {{! 舞台/领奖台布局：亚军(左) - 冠军(中心放大) - 季军(右) }}
+          <div class="podium">
+            {{#if this.secondUser}}
+              <div class="podium-position podium-position--second">
+                <div class="{{this.medalClass this.secondUser.rank}}">
+                  <span class="medal-rank">{{this.secondUser.rank}}</span>
+                </div>
+                <div class="podium-user">{{this.secondUser.username}}</div>
+                <div class="podium-score">+{{this.secondUser.points}} 分</div>
+              </div>
+            {{/if}}
+
+            {{#if this.firstUser}}
+              <div class="podium-position podium-position--first">
+                <div class="{{this.medalClass this.firstUser.rank}}">
+                  <span class="medal-rank">{{this.firstUser.rank}}</span>
+                </div>
+                <div class="podium-user">{{this.firstUser.username}}</div>
+                <div class="podium-score">+{{this.firstUser.points}} 分</div>
+              </div>
+            {{/if}}
+
+            {{#if this.thirdUser}}
+              <div class="podium-position podium-position--third">
+                <div class="{{this.medalClass this.thirdUser.rank}}">
+                  <span class="medal-rank">{{this.thirdUser.rank}}</span>
+                </div>
+                <div class="podium-user">{{this.thirdUser.username}}</div>
+                <div class="podium-score">+{{this.thirdUser.points}} 分</div>
+              </div>
+            {{/if}}
+          </div>
         </div>
 
-        {{! 舞台/领奖台布局（仅在第一页显示前三名）}}
-        {{#if this.showPodium}}
-          <div class="board-stage">
-            <div class="podium">
-              {{#if this.secondUser}}
-                <div class="podium-position podium-position--second">
-                  <div class="{{this.medalClass this.secondUser.rank}}">
-                    <span class="medal-rank">{{this.secondUser.rank}}</span>
-                  </div>
-                  <div class="podium-user">{{this.secondUser.username}}</div>
-                  <div class="podium-score">+{{this.secondUser.points}} 分</div>
-                </div>
-              {{/if}}
-
-              {{#if this.firstUser}}
-                <div class="podium-position podium-position--first">
-                  <div class="{{this.medalClass this.firstUser.rank}}">
-                    <span class="medal-rank">{{this.firstUser.rank}}</span>
-                  </div>
-                  <div class="podium-user">{{this.firstUser.username}}</div>
-                  <div class="podium-score">+{{this.firstUser.points}} 分</div>
-                </div>
-              {{/if}}
-
-              {{#if this.thirdUser}}
-                <div class="podium-position podium-position--third">
-                  <div class="{{this.medalClass this.thirdUser.rank}}">
-                    <span class="medal-rank">{{this.thirdUser.rank}}</span>
-                  </div>
-                  <div class="podium-user">{{this.thirdUser.username}}</div>
-                  <div class="podium-score">+{{this.thirdUser.points}} 分</div>
-                </div>
-              {{/if}}
-            </div>
-          </div>
-        {{/if}}
-
-        {{! 排行榜列表 }}
-        {{#if this.listData}}
+        {{! 其余榜单（第4-5名）}}
+        {{#if this.restList}}
           <div class="board-list">
-            {{#each this.listData as |user|}}
+            {{#each this.restList as |user|}}
               <div class="board-item">
                 <div class="board-rank">#{{user.rank}}</div>
                 <div class="board-user">{{user.username}}</div>
                 <div class="board-score">+{{user.points}} 分</div>
               </div>
             {{/each}}
-          </div>
-        {{/if}}
-
-        {{! 分页导航 }}
-        {{#if (gt this.totalPages 1)}}
-          <div class="board-pagination">
-            <button 
-              class="pagination-btn pagination-btn--prev" 
-              {{on "click" this.prevPage}}
-              disabled={{not this.hasPrevPage}}
-            >
-              ← 上一页
-            </button>
-
-            <div class="pagination-numbers">
-              {{#each this.pageNumbers as |pageNum|}}
-                <button 
-                  class="pagination-btn pagination-btn--number {{if (eq pageNum this.currentPage) 'active'}}" 
-                  {{on "click" (fn this.goToPage pageNum)}}
-                >
-                  {{pageNum}}
-                </button>
-              {{/each}}
-            </div>
-
-            <button 
-              class="pagination-btn pagination-btn--next" 
-              {{on "click" this.nextPage}}
-              disabled={{not this.hasNextPage}}
-            >
-              下一页 →
-            </button>
           </div>
         {{/if}}
       {{/if}}

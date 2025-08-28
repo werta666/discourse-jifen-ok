@@ -75,11 +75,7 @@ module ::MyPluginModule
       end
 
       begin
-        # 获取分页参数
-        page = (params[:page] || 1).to_i
-        page = 1 if page < 1
-        
-        board_data = MyPluginModule::JifenService.get_leaderboard(page: page)
+        board_data = MyPluginModule::JifenService.get_leaderboard(limit: 5)
         
         # 格式化数据以匹配前端期望
         response_data = {
@@ -89,7 +85,6 @@ module ::MyPluginModule
           updatedAt: board_data[:updated_at],
           minutes_until_next_update: board_data[:minutes_until_next_update] || 0,
           update_interval_minutes: board_data[:update_interval_minutes] || 5,
-          pagination: board_data[:pagination] || {},
           from_cache: board_data[:from_cache] || false
         }
         
