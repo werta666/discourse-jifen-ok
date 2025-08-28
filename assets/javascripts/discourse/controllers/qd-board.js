@@ -111,6 +111,9 @@ export default class QdBoardController extends Controller {
       this.model.is_admin = data.is_admin || false;
       this.model.requires_login = data.requires_login || false;
       this.model.message = data.message || "";
+      
+      // 触发页面重新渲染，确保新数据显示
+      this.notifyPropertyChange('model');
     } catch (error) {
       console.error("加载排行榜失败:", error);
     }
