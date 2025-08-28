@@ -82,68 +82,10 @@
           </button>
         {{else}}
           <div class="cache-info">
-            📊 数据每{{this.updateIntervalMinutes}}分钟自动更新
+            📊 数据每{{site.jifen_leaderboard_update_minutes}}分钟自动更新
           </div>
         {{/if}}
-        <span class="board-updated">
-          {{#if this.minutesUntilNextUpdate}}
-            距离下一次更新还需要 {{this.minutesUntilNextUpdate}} 分钟
-          {{else}}
-            即将更新...
-          {{/if}}
-        </span>
-      </div>
-    </div>
-  </div>
-</div>disabled={{this.isLoading}}
-              >
-                ← 上一页
-              </button>
-            {{/if}}
-
-            <div class="pagination-info">
-              <span class="pagination-current">{{this.pagination.current_page}}</span>
-              <span class="pagination-separator">/</span>
-              <span class="pagination-total">{{this.pagination.total_pages}}</span>
-            </div>
-
-            {{#if this.pagination.has_next}}
-              <button 
-                class="pagination-btn pagination-btn--next" 
-                {{on "click" (fn this.loadPage (add this.pagination.current_page 1))}}
-                disabled={{this.isLoading}}
-              >
-                下一页 →
-              </button>
-            {{/if}}
-          </div>
-        {{/if}}
-      {{/if}}
-
-      {{! 底部操作区 }}
-      <div class="board-footer">
-        {{#if this.isAdmin}}
-          <button 
-            type="button" 
-            class="btn btn-primary admin-refresh-btn" 
-            {{on "click" this.refreshBoard}}
-            disabled={{this.isLoading}}
-            title="管理员专用：强制刷新排行榜缓存"
-          >
-            {{#if this.isLoading}}强制刷新中...{{else}}🔄 强制刷新{{/if}}
-          </button>
-        {{else}}
-          <div class="cache-info">
-            📊 数据每{{this.updateIntervalMinutes}}分钟自动更新
-          </div>
-        {{/if}}
-        <span class="board-updated">
-          {{#if this.minutesUntilNextUpdate}}
-            距离下一次更新还需要 {{this.minutesUntilNextUpdate}} 分钟
-          {{else}}
-            即将更新...
-          {{/if}}
-        </span>
+        <span class="board-updated">更新于: {{this.model.updatedAt}}</span>
       </div>
     </div>
   </div>

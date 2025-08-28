@@ -275,37 +275,22 @@ module ::MyPluginModule
       cached_data = Rails.cache.read(cache_key)
       
       if cached_data
-        # 计算距离下次更新的分钟数
-        last_updated = cached_data[:last_updated] || Time.current
-        update_interval = cached_data[:update_interval_minutes] || 5
-        next_update_time = last_updated + update_interval.minutes
-        minutes_until_next_update = [(next_update_time - Time.current) / 60, 0].max.round
-        
         # 从缓存中取前N名
         limited_leaderboard = cached_data[:leaderboard].first(limit)
         return {
           leaderboard: limited_leaderboard,
           updated_at: cached_data[:updated_at],
-          minutes_until_next_update: minutes_until_next_update,
-          update_interval_minutes: update_interval,
           from_cache: true
         }
       else
         # 缓存未命中，实时计算并写入缓存
         Rails.logger.warn "[积分插件] 排行榜缓存未命中，执行实时计算"
         fresh_data = calculate_leaderboard_uncached(limit: 10)
-        update_interval = SiteSetting.jifen_leaderboard_update_minutes || 5
-        cache_data = fresh_data.merge({
-          last_updated: Time.current,
-          update_interval_minutes: update_interval
-        })
-        Rails.cache.write(cache_key, cache_data, expires_in: 1.hour)
+        Rails.cache.write(cache_key, fresh_data, expires_in: 1.hour)
         
         return {
           leaderboard: fresh_data[:leaderboard].first(limit),
           updated_at: fresh_data[:updated_at],
-          minutes_until_next_update: update_interval,
-          update_interval_minutes: update_interval,
           from_cache: false
         }
       end

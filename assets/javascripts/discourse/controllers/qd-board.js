@@ -20,16 +20,6 @@ export default class QdBoardController extends Controller {
     return this.model?.is_admin || false;
   }
 
-  // 获取距离下次更新的分钟数
-  get minutesUntilNextUpdate() {
-    return this.model?.minutes_until_next_update || 0;
-  }
-
-  // 获取更新间隔分钟数
-  get updateIntervalMinutes() {
-    return this.model?.update_interval_minutes || 5;
-  }
-
   // 排序后的前五
   get sortedTop() {
     return (this.model?.top || []).slice().sort((a, b) => a.rank - b.rank).slice(0, 5);
@@ -85,49 +75,6 @@ export default class QdBoardController extends Controller {
       }
     } catch (error) {
       console.error("强制刷新排行榜失败:", error);
-      if (this.appEvents) {
-        this.appEvents.trigger("modal-body:flash", {
-          text: "刷新失败，请稍后重试",
-          messageClass: "error"
-        });
-      }
-    } finally {
-      this.isLoading = false;
-    }
-  }
-}ading = false;
-    }
-  }
-}", {
-        type: "POST"
-      });
-      
-      if (result.success) {
-        // 更新模型数据
-        this.model.top = result.leaderboard || [];
-        this.model.updatedAt = result.updated_at;
-        
-        // 显示成功提示
-        if (this.appEvents) {
-          this.appEvents.trigger("modal-body:flash", {
-            text: result.message || "排行榜已刷新",
-            messageClass: "success"
-          });
-        }
-      }
-    } catch (error) {
-      console.error("强制刷新排行榜失败:", error);
-      if (this.appEvents) {
-        this.appEvents.trigger("modal-body:flash", {
-          text: "刷新失败，请稍后重试",
-          messageClass: "error"
-        });
-      }
-    } finally {
-      this.isLoading = false;
-    }
-  }
-}    console.error("强制刷新排行榜失败:", error);
       if (this.appEvents) {
         this.appEvents.trigger("modal-body:flash", {
           text: "刷新失败，请稍后重试",
