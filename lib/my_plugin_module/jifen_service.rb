@@ -271,23 +271,33 @@ module ::MyPluginModule
 
     # 获取积分排行榜
     def self.get_leaderboard(limit: 5)
-      # 获取所有有积分记录的用户，按总积分排序
-      users_with_points = User.joins("LEFT JOIN user_custom_fields ucf_total ON users.id = ucf_total.user_id AND ucf_total.name = 'jifen_spent'")
-        .joins("INNER JOIN jifen_signins js ON users.id = js.user_id")
-        .select("users.id, users.username, 
-                 COALESCE(SUM(js.points), 0) as total_points,
-                 COALESCE(ucf_total.value::integer, 0) as spent_points,
-                 COALESCE(SUM(js.points), 0) - COALESCE(ucf_total.value::integer, 0) as available_points")
-        .group("users.id, users.username, ucf_total.value")
-        .having("COALESCE(SUM(js.points), 0) > 0")
-        .order("available_points DESC")
-        .limit(limit)
-
-      leaderboard = users_with_points.map.with_index(1) do |user, rank|
+      # 获取所有有签到记录的用户ID
+      user_ids = MyPluginModule::JifenSignin.distinct.pluck(:user_id)
+      
+      # 计算每个用户的可用积分并排序
+      user_scores = user_ids.map do |user_id|
+        user = User.find_by(id: user_id)
+        next unless user
+        
+        total = total_points(user_id)
+        spent = spent_points(user)
+        available = total - spent
+        
+        {
+          user_id: user_id,
+          username: user.username,
+          available_points: available
+        }
+      end.compact.select { |u| u[:available_points] > 0 }
+      
+      # 按可用积分降序排列，取前N名
+      top_users = user_scores.sort_by { |u| -u[:available_points] }.first(limit)
+      
+      leaderboard = top_users.map.with_index(1) do |user, rank|
         {
           rank: rank,
-          username: user.username,
-          points: user.available_points.to_i
+          username: user[:username],
+          points: user[:available_points]
         }
       end
 

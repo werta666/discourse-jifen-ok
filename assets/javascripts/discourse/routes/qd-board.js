@@ -4,7 +4,7 @@ import { ajax } from "discourse/lib/ajax";
 export default class QdBoardRoute extends Route {
   async model() {
     try {
-      const data = await ajax("/qd/board.json");
+      const data = await ajax("/qd/board_data.json");
       return {
         top: data.leaderboard || [],
         updatedAt: data.updated_at || new Date().toISOString()
