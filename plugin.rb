@@ -13,7 +13,7 @@ enabled_site_setting :jifen_enabled
 # 注册样式表（qd 页面样式）
 register_asset "stylesheets/qd-plugin.scss"
 register_asset "stylesheets/qd-board.scss"
-register_asset "stylesheets/qd-board-neo.scss"
+register_asset "stylesheets/qd-board-mario.scss"
 
 # 插件命名空间（沿用现有 MyPluginModule 以避免大规模重命名）
 module ::MyPluginModule
