@@ -2,7 +2,25 @@
 
 module ::MyPluginModule
   class UpdateLeaderboardJob < ::Jobs::Scheduled
-    every 3.minutes  # 默认3分钟，避免启动时读取设置失败
+    # 动态读取更新间隔，提供多重保障
+    def self.update_interval_minutes
+      # 检查SiteSetting是否可用
+      return 3 unless defined?(SiteSetting)
+      
+      # 检查设置方法是否存在
+      return 3 unless SiteSetting.respond_to?(:jifen_leaderboard_update_minutes)
+      
+      # 获取设置值，确保在有效范围内
+      interval = SiteSetting.jifen_leaderboard_update_minutes
+      return 3 if interval.nil? || interval < 1 || interval > 60
+      
+      interval
+    rescue => e
+      Rails.logger.warn "[积分插件] 读取更新间隔设置失败: #{e.message}，使用默认值3分钟"
+      3
+    end
+
+    every -> { update_interval_minutes.minutes }
 
     def execute(args)
       return unless SiteSetting.jifen_enabled

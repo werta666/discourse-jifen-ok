@@ -2,8 +2,11 @@ import Controller from "@ember/controller";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { ajax } from "discourse/lib/ajax";
+import { service } from "@ember/service";
 
 export default class QdBoardController extends Controller {
+  @service siteSettings;
+  
   @tracked isLoading = false;
   @tracked nextUpdateMinutes = 3;
   @tracked countdownTimer = null;
@@ -20,6 +23,11 @@ export default class QdBoardController extends Controller {
   // 检查是否为管理员
   get isAdmin() {
     return this.model?.is_admin || false;
+  }
+
+  // 获取更新间隔（从站点设置读取）
+  get updateIntervalMinutes() {
+    return this.siteSettings?.jifen_leaderboard_update_minutes || 3;
   }
 
   // 排序后的前五
@@ -66,9 +74,14 @@ export default class QdBoardController extends Controller {
     }, 1000); // 1秒更新一次
   }
 
+  // 获取更新间隔（从站点设置读取）
+  get updateIntervalMinutes() {
+    return this.siteSettings?.jifen_leaderboard_update_minutes || 3;
+  }
+
   updateCountdown() {
     if (!this.model?.updatedAt) {
-      this.nextUpdateMinutes = 3;
+      this.nextUpdateMinutes = this.updateIntervalMinutes;
       return;
     }
 
@@ -76,7 +89,7 @@ export default class QdBoardController extends Controller {
       const lastUpdated = new Date(this.model.updatedAt);
       const now = new Date();
       const timeSinceUpdate = now - lastUpdated;
-      const updateInterval = 3 * 60 * 1000; // 3分钟的毫秒数
+      const updateInterval = this.updateIntervalMinutes * 60 * 1000; // 转换为毫秒
       
       // 计算距离下次更新的剩余时间
       const timeUntilNext = updateInterval - (timeSinceUpdate % updateInterval);
@@ -84,13 +97,13 @@ export default class QdBoardController extends Controller {
       
       this.nextUpdateMinutes = Math.max(0, minutesLeft);
       
-      // 如果倒计时到0，可以触发数据刷新
+      // 如果倒计时到0，触发数据刷新
       if (this.nextUpdateMinutes === 0) {
         this.loadLeaderboard();
       }
     } catch (error) {
       console.error("计算倒计时失败:", error);
-      this.nextUpdateMinutes = 3;
+      this.nextUpdateMinutes = this.updateIntervalMinutes;
     }
   }
 
