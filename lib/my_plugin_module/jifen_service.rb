@@ -269,8 +269,45 @@ module ::MyPluginModule
       summary_for(user)
     end
 
-    # 获取积分排行榜
+    # 获取积分排行榜（从缓存读取，性能优化版本）
     def self.get_leaderboard(limit: 5)
+      cache_key = "jifen_leaderboard_cache"
+      cached_data = Rails.cache.read(cache_key)
+      
+      if cached_data
+        # 从缓存中取前N名
+        limited_leaderboard = cached_data[:leaderboard].first(limit)
+        return {
+          leaderboard: limited_leaderboard,
+          updated_at: cached_data[:updated_at],
+          from_cache: true
+        }
+      else
+        # 缓存未命中，实时计算并写入缓存
+        Rails.logger.warn "[积分插件] 排行榜缓存未命中，执行实时计算"
+        fresh_data = calculate_leaderboard_uncached(limit: 10)
+        Rails.cache.write(cache_key, fresh_data, expires_in: 1.hour)
+        
+        return {
+          leaderboard: fresh_data[:leaderboard].first(limit),
+          updated_at: fresh_data[:updated_at],
+          from_cache: false
+        }
+      end
+    end
+
+    # 强制刷新排行榜缓存（管理员功能）
+    def self.force_refresh_leaderboard!
+      cache_key = "jifen_leaderboard_cache"
+      fresh_data = calculate_leaderboard_uncached(limit: 10)
+      Rails.cache.write(cache_key, fresh_data, expires_in: 2.hours)
+      
+      Rails.logger.info "[积分插件] 管理员强制刷新排行榜缓存"
+      fresh_data
+    end
+
+    # 实际计算排行榜的方法（无缓存）
+    def self.calculate_leaderboard_uncached(limit: 5)
       # 获取所有有签到记录的用户ID
       user_ids = MyPluginModule::JifenSignin.distinct.pluck(:user_id)
       

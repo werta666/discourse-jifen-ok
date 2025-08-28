@@ -76,10 +76,32 @@ module ::MyPluginModule
 
       begin
         board_data = MyPluginModule::JifenService.get_leaderboard(limit: 5)
-        render_json_dump(board_data.merge(requires_login: false))
+        render_json_dump(board_data.merge(
+          requires_login: false,
+          is_admin: current_user.admin?
+        ))
       rescue => e
         Rails.logger.error "获取排行榜失败: #{e.message}"
         render_json_error("获取排行榜失败", status: 500)
+      end
+    end
+
+    # 管理员强制刷新排行榜缓存
+    def force_refresh_board
+      ensure_logged_in
+      ensure_admin
+      
+      begin
+        fresh_data = MyPluginModule::JifenService.force_refresh_leaderboard!
+        render_json_dump({
+          success: true,
+          message: "排行榜缓存已强制刷新",
+          leaderboard: fresh_data[:leaderboard].first(5),
+          updated_at: fresh_data[:updated_at]
+        })
+      rescue => e
+        Rails.logger.error "强制刷新排行榜失败: #{e.message}"
+        render_json_error("强制刷新失败", status: 500)
       end
     end
   end

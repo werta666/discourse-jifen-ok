@@ -28,4 +28,19 @@ after_initialize do
   Discourse::Application.routes.append do
     mount ::MyPluginModule::Engine, at: "/qd"
   end
+
+  # 注册后台任务
+  require_relative "app/jobs/my_plugin_module/update_leaderboard_job"
+  
+  # 监听站点设置变化，动态调整任务间隔
+  DiscourseEvent.on(:site_setting_changed) do |name, old_value, new_value|
+    if name == :jifen_leaderboard_update_minutes && old_value != new_value
+      MyPluginModule::UpdateLeaderboardJob.update_schedule!
+    end
+  end
+  
+  # 插件启用时初始化排行榜缓存
+  if SiteSetting.jifen_enabled
+    Jobs.enqueue(:update_leaderboard, {})
+  end
 end

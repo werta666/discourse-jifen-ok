@@ -24,3 +24,10 @@ jifen:
     default: 20
     client: true
     description: "补签卡单价（积分）。购买后会从可用积分中扣除相应积分，并增加 1 张补签卡"
+
+  jifen_leaderboard_update_minutes:
+    default: 5
+    min: 1
+    max: 60
+    client: false
+    description: "积分排行榜缓存更新间隔（分钟）。设置后台任务多久更新一次排行榜数据，范围 1-60 分钟"

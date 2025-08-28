@@ -1,6 +1,7 @@
 import Controller from "@ember/controller";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
+import { ajax } from "discourse/lib/ajax";
 
 export default class QdBoardController extends Controller {
   @tracked isLoading = false;
@@ -12,6 +13,11 @@ export default class QdBoardController extends Controller {
 
   get loginMessage() {
     return this.model?.message || "请登录后查看积分排行榜";
+  }
+
+  // 检查是否为管理员
+  get isAdmin() {
+    return this.model?.is_admin || false;
   }
 
   // 排序后的前五
@@ -44,10 +50,37 @@ export default class QdBoardController extends Controller {
 
   @action
   async refreshBoard() {
-    // 预留：后续用 ajax 拉取最新排行榜
+    if (!this.isAdmin) {
+      return; // 非管理员不显示刷新按钮，这里作为保护
+    }
+
     this.isLoading = true;
     try {
-      // no-op, 使用路由模型中的模拟数据
+      const result = await ajax("/qd/force_refresh_board.json", {
+        type: "POST"
+      });
+      
+      if (result.success) {
+        // 更新模型数据
+        this.model.top = result.leaderboard || [];
+        this.model.updatedAt = result.updated_at;
+        
+        // 显示成功提示
+        if (this.appEvents) {
+          this.appEvents.trigger("modal-body:flash", {
+            text: result.message || "排行榜已刷新",
+            messageClass: "success"
+          });
+        }
+      }
+    } catch (error) {
+      console.error("强制刷新排行榜失败:", error);
+      if (this.appEvents) {
+        this.appEvents.trigger("modal-body:flash", {
+          text: "刷新失败，请稍后重试",
+          messageClass: "error"
+        });
+      }
     } finally {
       this.isLoading = false;
     }
