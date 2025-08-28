@@ -57,16 +57,41 @@ export default class QdBoardController extends Controller {
       clearInterval(this.countdownTimer);
     }
 
-    // 设置初始倒计时为3分钟
-    this.nextUpdateMinutes = 3;
+    // 基于服务器更新时间计算真实的倒计时
+    this.updateCountdown();
 
-    // 每分钟更新一次倒计时
+    // 每秒更新一次倒计时，确保精确同步
     this.countdownTimer = setInterval(() => {
-      this.nextUpdateMinutes--;
-      if (this.nextUpdateMinutes <= 0) {
-        this.nextUpdateMinutes = 3; // 重置为3分钟
+      this.updateCountdown();
+    }, 1000); // 1秒更新一次
+  }
+
+  updateCountdown() {
+    if (!this.model?.updatedAt) {
+      this.nextUpdateMinutes = 3;
+      return;
+    }
+
+    try {
+      const lastUpdated = new Date(this.model.updatedAt);
+      const now = new Date();
+      const timeSinceUpdate = now - lastUpdated;
+      const updateInterval = 3 * 60 * 1000; // 3分钟的毫秒数
+      
+      // 计算距离下次更新的剩余时间
+      const timeUntilNext = updateInterval - (timeSinceUpdate % updateInterval);
+      const minutesLeft = Math.ceil(timeUntilNext / (60 * 1000));
+      
+      this.nextUpdateMinutes = Math.max(0, minutesLeft);
+      
+      // 如果倒计时到0，可以触发数据刷新
+      if (this.nextUpdateMinutes === 0) {
+        this.loadLeaderboard();
       }
-    }, 60000); // 60秒
+    } catch (error) {
+      console.error("计算倒计时失败:", error);
+      this.nextUpdateMinutes = 3;
+    }
   }
 
   // 清理定时器
@@ -74,6 +99,20 @@ export default class QdBoardController extends Controller {
     super.willDestroy();
     if (this.countdownTimer) {
       clearInterval(this.countdownTimer);
+    }
+  }
+
+  async loadLeaderboard() {
+    try {
+      const data = await ajax("/qd/board_data.json");
+      // 更新模型数据
+      this.model.top = data.leaderboard || [];
+      this.model.updatedAt = data.updated_at || new Date().toISOString();
+      this.model.is_admin = data.is_admin || false;
+      this.model.requires_login = data.requires_login || false;
+      this.model.message = data.message || "";
+    } catch (error) {
+      console.error("加载排行榜失败:", error);
     }
   }
 
@@ -94,7 +133,7 @@ export default class QdBoardController extends Controller {
         this.model.top = result.leaderboard || [];
         this.model.updatedAt = result.updated_at;
         
-        // 重启倒计时
+        // 重启倒计时（基于新的更新时间）
         this.startCountdown();
         
         // 显示成功提示

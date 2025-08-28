@@ -347,7 +347,8 @@
   border-top: 1px solid rgba(255,255,255,0.1);
 }
 
-.board-footer button {
+/* 使用更具体的选择器，避免影响全局按钮 */
+.qd-board--neo .board-footer button {
   background: linear-gradient(45deg, #667eea, #764ba2);
   color: white;
   border: none;
@@ -360,12 +361,12 @@
   text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
-.board-footer button:hover:not(:disabled) {
+.qd-board--neo .board-footer button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(102,126,234,0.4);
 }
 
-.board-footer button:disabled {
+.qd-board--neo .board-footer button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
@@ -452,7 +453,8 @@
   100% { transform: scale(1.05); }
 }
 
-.admin-refresh-btn {
+/* 使用更具体的选择器，限制在积分排行榜页面内 */
+.qd-board--neo .admin-refresh-btn {
   background: linear-gradient(45deg, #667eea, #764ba2) !important;
   border: none !important;
   color: white !important;
@@ -468,7 +470,7 @@
   cursor: pointer !important;
 }
 
-.admin-refresh-btn:hover:not(:disabled) {
+.qd-board--neo .admin-refresh-btn:hover:not(:disabled) {
   background: linear-gradient(45deg, #5a67d8, #6b46c1) !important;
   transform: translateY(-2px) !important;
   box-shadow: 
@@ -476,7 +478,7 @@
     inset 0 1px 0 rgba(255,255,255,0.2) !important;
 }
 
-.admin-refresh-btn:disabled {
+.qd-board--neo .admin-refresh-btn:disabled {
   opacity: 0.7 !important;
   cursor: not-allowed !important;
   transform: none !important;
