@@ -712,3 +712,488 @@ class CreateJifenSignins < ActiveRecord::Migration[6.0]
     drop_table :jifen_signins if table_exists?(:jifen_signins)
   end
 end
+
+## 🎯 高级实现技巧与问题解决
+
+### 1. 多级路由实现：从 /qd 到 /qd/board 的成功渲染
+
+**问题背景**：在已有 `/qd` 路径的基础上，如何成功实现 `/qd/board` 子路由并避免 502 错误？
+
+**成功方案**：Engine 内部路由 + Ember 嵌套路由
+
+#### 后端路由配置 (`config/routes.rb`)
+```ruby
+# frozen_string_literal: true
+
+MyPluginModule::Engine.routes.draw do
+  get "/" => "qd#index"                    # /qd 主页
+  get "/board" => "qd#board"               # /qd/board 排行榜页面
+  get "/board_data" => "qd#board_data"     # /qd/board_data API接口
+  post "/force_refresh_board" => "qd#force_refresh_board"  # 管理员刷新
+end
+```
+
+#### 控制器方法 (`app/controllers/my_plugin_module/qd_controller.rb`)
+```ruby
+def board
+  # 渲染 Ember 应用，让前端路由接管
+  render "default/empty"
+rescue => e
+  Rails.logger.error "排行榜页面错误: #{e.message}"
+  render plain: "Error: #{e.message}", status: 500
+end
+
+def board_data
+  # JSON API 接口，返回排行榜数据
+  begin
+    leaderboard_data = MyPluginModule::JifenService.get_leaderboard(limit: 5)
+    render_json_dump({
+      success: true,
+      leaderboard: leaderboard_data[:leaderboard],
+      updated_at: leaderboard_data[:updated_at],
+      requires_login: !current_user,
+      is_admin: current_user&.admin?
+    })
+  rescue => e
+    Rails.logger.error "获取排行榜失败: #{e.message}"
+    render_json_error("获取排行榜失败", status: 500)
+  end
+end
+```
+
+#### 前端路由映射 (`assets/javascripts/discourse/qd-route-map.js`)
+```javascript
+// 嵌套路由配置
+export default function () {
+  this.route("qd", { path: "/qd" }, function() {
+    this.route("board", { path: "/board" });  // /qd/board 子路由
+  });
+}
+```
+
+#### 关键成功要点：
+1. **路由分离**：页面路由 (`/board`) 与 API 路由 (`/board_data`) 分开
+2. **渲染策略**：页面路由返回 `"default/empty"`，让 Ember 接管渲染
+3. **嵌套路由**：使用 Ember 嵌套路由语法，避免路径冲突
+4. **错误处理**：完善的异常捕获和日志记录
+
+### 2. CSS 样式隔离：解决样式波及全站按钮问题
+
+**问题背景**：插件样式意外影响了网站的登录、注册按钮，导致全站样式混乱。
+
+**问题原因**：过于宽泛的 CSS 选择器
+```scss
+/* ❌ 错误的宽泛选择器 */
+.login-button {
+  background: linear-gradient(45deg, #ff6b6b, #feca57);
+  /* 这会影响全站所有 .login-button */
+}
+
+.board-footer button {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  /* 这会影响所有页面的 button 元素 */
+}
+```
+
+**成功解决方案**：CSS 选择器作用域限制
+
+#### 1. 容器作用域限制
+```scss
+/* ✅ 正确的限定选择器 */
+.qd-board--neo .login-button {
+  background: linear-gradient(45deg, #ff6b6b, #feca57);
+  /* 只影响 .qd-board--neo 容器内的 .login-button */
+}
+
+.qd-board--neo .board-footer button {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  /* 只影响排行榜页面的按钮 */
+}
+```
+
+#### 2. 多主题样式隔离
+```scss
+/* Neo 主题样式 */
+.qd-board--neo .admin-refresh-btn {
+  background: linear-gradient(45deg, #667eea, #764ba2) !important;
+  /* 限定在 neo 主题容器内 */
+}
+
+/* Mario 主题样式 */
+.qd-board--mario .admin-refresh-btn {
+  background: linear-gradient(145deg, #FF0000 0%, #CC0000 100%) !important;
+  /* 限定在 mario 主题容器内 */
+}
+
+/* Minecraft 主题样式 */
+.qd-board--minecraft .admin-refresh-btn {
+  background: linear-gradient(145deg, #FF6B6B 0%, #CC0000 100%) !important;
+  /* 限定在 minecraft 主题容器内 */
+}
+```
+
+#### 3. 模板容器结构
+```handlebars
+{{! 动态主题容器类名 }}
+<div class="qd-page qd-board--{{this.boardTheme}}">
+  <div class="qd-container">
+    <div class="qd-card">
+      {{! 所有样式都限定在这个容器内 }}
+      <button class="login-button">登录</button>
+      <button class="admin-refresh-btn">刷新</button>
+    </div>
+  </div>
+</div>
+```
+
+#### 关键成功要点：
+1. **容器限定**：所有样式选择器都以主题容器类开头
+2. **避免全局选择器**：不使用 `button`、`.btn` 等通用选择器
+3. **使用 !important**：确保插件样式优先级高于全局样式
+4. **主题隔离**：不同主题使用不同的容器类名
+
+### 3. 动态主题切换系统实现
+
+**技术架构**：后端配置 + 前端响应式渲染
+
+#### 后端配置系统 (`config/settings.yml`)
+```yaml
+jifen_board_theme:
+  default: 'neo'
+  client: true
+  type: enum
+  choices:
+    - neo
+    - mario
+    - minecraft
+  description: "积分排行榜主题风格。neo: 精致游戏风格，mario: 马里奥风格，minecraft: 我的世界像素风格"
+```
+
+#### 前端响应式获取 (`assets/javascripts/discourse/controllers/qd-board.js`)
+```javascript
+export default class QdBoardController extends Controller {
+  @service siteSettings;
+
+  // 响应式获取主题设置
+  get boardTheme() {
+    return this.siteSettings?.jifen_board_theme || 'neo';
+  }
+}
+```
+
+#### 模板动态类名 (`assets/javascripts/discourse/templates/qd-board.hbs`)
+```handlebars
+{{! 动态应用主题类名 }}
+<div class="qd-page qd-board--{{this.boardTheme}}">
+  {{! 内容会根据主题自动应用不同样式 }}
+</div>
+```
+
+#### 样式文件组织结构
+```
+assets/stylesheets/
+├── qd-board-neo.scss        # 精致游戏风格
+├── qd-board-mario.scss      # 马里奥风格
+└── qd-board-minecraft.scss  # 我的世界像素风格
+```
+
+#### 插件注册 (`plugin.rb`)
+```ruby
+# 注册所有主题样式文件
+register_asset "stylesheets/qd-board-neo.scss"
+register_asset "stylesheets/qd-board-mario.scss"
+register_asset "stylesheets/qd-board-minecraft.scss"
+```
+
+### 4. 性能优化：缓存系统与后台任务
+
+**问题**：排行榜实时计算性能差，用户多时响应慢
+
+**解决方案**：Redis 缓存 + Sidekiq 后台任务
+
+#### 缓存服务层 (`lib/my_plugin_module/jifen_service.rb`)
+```ruby
+# 获取排行榜（优先从缓存读取）
+def self.get_leaderboard(limit: 5)
+  cache_key = "jifen_leaderboard_cache"
+  cached_data = Rails.cache.read(cache_key)
+  
+  if cached_data
+    return {
+      leaderboard: cached_data[:leaderboard].first(limit),
+      updated_at: cached_data[:updated_at],
+      from_cache: true
+    }
+  else
+    # 缓存未命中，实时计算
+    fresh_data = calculate_leaderboard_uncached(limit: 10)
+    Rails.cache.write(cache_key, fresh_data, expires_in: 1.hour)
+    return fresh_data
+  end
+end
+
+# 强制刷新缓存（管理员功能）
+def self.refresh_leaderboard_cache!
+  cache_key = "jifen_leaderboard_cache"
+  last_update_key = "jifen_leaderboard_last_update"
+  fresh_data = calculate_leaderboard_uncached(limit: 10)
+  current_time = Time.current
+  
+  Rails.cache.write(cache_key, fresh_data, expires_in: 2.hours)
+  Rails.cache.write(last_update_key, current_time, expires_in: 2.hours)
+  
+  fresh_data
+end
+```
+
+#### 后台定时任务 (`app/jobs/my_plugin_module/update_leaderboard_job.rb`)
+```ruby
+class MyPluginModule::UpdateLeaderboardJob < ::Jobs::Scheduled
+  every 1.minute  # 每分钟检查一次
+
+  def execute(args)
+    return unless SiteSetting.jifen_enabled
+
+    # 检查是否需要更新（基于配置的间隔时间）
+    last_update_time = Rails.cache.read("jifen_leaderboard_last_update")
+    current_time = Time.current
+    update_interval = self.class.update_interval_minutes.minutes
+    
+    # 如果还没到更新时间，跳过本次执行
+    if last_update_time && (current_time - last_update_time) < update_interval
+      return
+    end
+
+    # 执行缓存更新
+    MyPluginModule::JifenService.refresh_leaderboard_cache!
+  end
+
+  def self.update_interval_minutes
+    SiteSetting.jifen_leaderboard_update_minutes || 3
+  end
+end
+```
+
+#### 动态配置监听 (`plugin.rb`)
+```ruby
+# 监听设置变更，立即应用新配置
+DiscourseEvent.on(:site_setting_changed) do |name, old_value, new_value|
+  if name == :jifen_leaderboard_update_minutes && old_value != new_value
+    Rails.logger.info "[积分插件] 排行榜更新间隔从 #{old_value} 分钟调整为 #{new_value} 分钟"
+    
+    # 立即刷新缓存以应用新的时间间隔
+    begin
+      MyPluginModule::JifenService.refresh_leaderboard_cache!
+      Rails.logger.info "[积分插件] 已立即刷新排行榜缓存以应用新的更新间隔"
+    rescue => e
+      Rails.logger.error "[积分插件] 刷新排行榜缓存失败: #{e.message}"
+    end
+  end
+end
+```
+
+### 5. 前端状态同步：解决多标签页倒计时不同步问题
+
+**问题**：不同浏览器标签页显示的倒计时不一致
+
+**解决方案**：基于服务器时间的同步计算
+
+#### 服务器时间基准 (`app/controllers/my_plugin_module/qd_controller.rb`)
+```ruby
+def board_data
+  leaderboard_data = MyPluginModule::JifenService.get_leaderboard(limit: 5)
+  render_json_dump({
+    success: true,
+    leaderboard: leaderboard_data[:leaderboard],
+    updated_at: leaderboard_data[:updated_at],  # 服务器时间基准
+    server_time: Time.zone.now.iso8601,        # 当前服务器时间
+    requires_login: !current_user,
+    is_admin: current_user&.admin?
+  })
+end
+```
+
+#### 前端同步计算 (`assets/javascripts/discourse/controllers/qd-board.js`)
+```javascript
+updateCountdown() {
+  if (!this.model?.updatedAt) return;
+  
+  // 基于服务器时间计算，而不是客户端时间
+  const lastUpdated = new Date(this.model.updatedAt);
+  const now = new Date();  // 当前时间
+  const timeSinceUpdate = now - lastUpdated;
+  const updateInterval = this.updateIntervalMinutes * 60 * 1000;
+  const timeUntilNext = updateInterval - (timeSinceUpdate % updateInterval);
+  const secondsLeft = Math.ceil(timeUntilNext / 1000);
+  const minutesLeft = Math.floor(secondsLeft / 60);
+  
+  this.nextUpdateMinutes = minutesLeft;
+}
+
+startCountdown() {
+  this.updateCountdown();
+  
+  // 每秒更新倒计时
+  this.countdownTimer = setInterval(() => {
+    this.updateCountdown();
+  }, 1000);
+}
+```
+
+### 6. 错误处理与用户体验优化
+
+#### API 错误处理
+```ruby
+def board_data
+  begin
+    leaderboard_data = MyPluginModule::JifenService.get_leaderboard(limit: 5)
+    render_json_dump({
+      success: true,
+      leaderboard: leaderboard_data[:leaderboard],
+      updated_at: leaderboard_data[:updated_at]
+    })
+  rescue => e
+    Rails.logger.error "获取排行榜失败: #{e.message}"
+    render_json_error("获取排行榜失败", status: 500)
+  end
+end
+```
+
+#### 前端加载状态
+```javascript
+@action
+async refreshBoard() {
+  this.isLoading = true;
+  try {
+    const result = await ajax("/qd/force_refresh_board.json", {
+      type: "POST"
+    });
+    
+    if (result.success) {
+      // 更新数据并触发重新渲染
+      this.model.top = result.leaderboard || [];
+      this.model.updatedAt = result.updated_at;
+      this.notifyPropertyChange('model');
+    }
+  } catch (error) {
+    console.error("强制刷新排行榜失败:", error);
+  } finally {
+    this.isLoading = false;
+  }
+}
+```
+
+## 🎯 核心成功经验总结
+
+### 1. 路由架构设计
+- **Engine 内部路由**：页面路由与 API 路由分离
+- **嵌套路由结构**：使用 Ember 嵌套路由避免冲突
+- **渲染策略分离**：页面返回 `"default/empty"`，API 返回 JSON
+
+### 2. 样式隔离策略
+- **容器作用域**：所有样式限定在主题容器内
+- **避免全局选择器**：不使用通用类名和标签选择器
+- **主题隔离设计**：不同主题使用独立的容器类名
+
+### 3. 性能优化方案
+- **多层缓存策略**：Redis 缓存 + 后台任务更新
+- **动态配置响应**：设置变更立即生效
+- **服务器时间同步**：避免客户端时间差异
+
+### 4. 用户体验设计
+- **完善错误处理**：后端异常捕获 + 前端友好提示
+- **加载状态反馈**：按钮禁用 + 加载动画
+- **实时数据更新**：强制刷新 + 自动倒计时
+
+## 🏆 用户积分数据获取与排行榜制作核心方法
+
+### 数据获取策略
+```ruby
+# 核心服务层：lib/my_plugin_module/jifen_service.rb
+def self.get_leaderboard(limit = 5)
+  Rails.cache.fetch("jifen_leaderboard_top_#{limit}", expires_in: 5.minutes) do
+    calculate_leaderboard_uncached(limit)
+  end
+end
+
+def self.calculate_leaderboard_uncached(limit = 5)
+  # 关键：使用 joins 避免 N+1 查询
+  top_users = User.joins("LEFT JOIN user_custom_fields ucf ON users.id = ucf.user_id AND ucf.name = 'jifen_total'")
+                  .where("users.active = true AND users.silenced_till IS NULL")
+                  .select("users.*, COALESCE(CAST(ucf.value AS INTEGER), 0) as jifen_total")
+                  .order("jifen_total DESC")
+                  .limit(limit)
+  
+  # 数据转换为前端需要的格式
+  leaderboard = top_users.map.with_index(1) do |user, rank|
+    {
+      rank: rank,
+      user_id: user.id,
+      username: user.username,
+      avatar_url: user.avatar_template_url.gsub("{size}", "45"),
+      jifen_total: user.jifen_total || 0
+    }
+  end
+  
+  { leaderboard: leaderboard, updated_at: Time.current }
+end
+```
+
+### API 端点设计
+```ruby
+# app/controllers/my_plugin_module/qd_controller.rb
+def board_data
+  begin
+    leaderboard_data = JifenService.get_leaderboard(5)
+    
+    render_json_dump({
+      success: true,
+      leaderboard: leaderboard_data[:leaderboard],
+      updated_at: leaderboard_data[:updated_at]
+    })
+  rescue => e
+    Rails.logger.error "获取排行榜失败: #{e.message}"
+    render_json_error("获取排行榜失败", status: 500)
+  end
+end
+```
+
+### 前端数据处理
+```javascript
+// assets/javascripts/discourse/routes/qd-board.js
+async model() {
+  try {
+    const result = await ajax("/qd/board_data.json");
+    
+    if (result.success && result.leaderboard) {
+      // 数据分组：前三名 + 其余
+      const topThree = result.leaderboard.slice(0, 3);
+      const restList = result.leaderboard.slice(3);
+      
+      return {
+        top: result.leaderboard,
+        topThree: topThree,
+        restList: restList,
+        updatedAt: result.updated_at
+      };
+    }
+  } catch (error) {
+    if (error.jqXHR?.status === 403) {
+      return { needLogin: true };
+    }
+    throw error;
+  }
+}
+```
+
+### 关键成功要素
+
+1. **数据库优化**：使用 `joins` 和 `select` 避免 N+1 查询
+2. **缓存策略**：Redis 缓存 + 后台任务定期更新
+3. **数据结构设计**：后端统一数据格式，前端直接使用
+4. **错误处理**：完整的异常捕获和用户友好提示
+5. **性能考虑**：限制查询数量，使用索引字段排序
+
+这套方法可以直接复用到其他需要获取用户积分数据的功能中，如：积分商城、任务系统、成就系统等。
+
+这些技术实现确保了插件的稳定性、性能和用户体验，为复杂的 Discourse 插件开发提供了可靠的技术基础。

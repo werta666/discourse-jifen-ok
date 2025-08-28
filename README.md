@@ -1,5 +1,3 @@
 # **Plugin Name** Plugin
 
-**Plugin Summary**
-
-For more information, please see: **url to meta topic**
+此版本更新了排行榜等动态功能
